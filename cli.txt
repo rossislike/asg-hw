@@ -1,0 +1,57 @@
+aws ec2 create-vpc \
+    --cidr-block "10.9.0.0/16" \
+    --instance-tenancy "default" \
+    --tag-specifications '{"resourceType":"vpc","tags":[{"key":"Name","value":"iblisk-vpc"}]}' 
+
+aws ec2 modify-vpc-attribute --vpc-id "vpc-0a72303e17267aba9" --enable-dns-hostnames '{"value":true}' 
+
+aws ec2 create-vpc-endpoint \
+    --vpc-id "vpc-0a72303e17267aba9" \
+    --service-name "com.amazonaws.us-east-1.s3" \
+    --tag-specifications '{"resourceType":"vpc-endpoint","tags":[{"key":"Name","value":"iblisk-vpce-s3"}]}' 
+
+---Subnets
+aws ec2 create-subnet \
+    --vpc-id "vpc-0a72303e17267aba9" \
+    --cidr-block "10.9.1.0/24" \
+    --availability-zone "us-east-1a" \
+    --tag-specifications '{"resourceType":"subnet","tags":[{"key":"Name","value":"iblisk-subnet-public1-us-east-1a"}]}' 
+
+aws ec2 create-subnet --vpc-id "vpc-0a72303e17267aba9" --cidr-block "10.9.11.0/24" --availability-zone "us-east-1a" --tag-specifications '{"resourceType":"subnet","tags":[{"key":"Name","value":"iblisk-subnet-private1-us-east-1a"}]}' 
+
+
+aws ec2 create-subnet --vpc-id "vpc-0a72303e17267aba9" --cidr-block "10.9.2.0/24" --availability-zone "us-east-1b" --tag-specifications '{"resourceType":"subnet","tags":[{"key":"Name","value":"iblisk-subnet-public2-us-east-1b"}]}' 
+
+
+aws ec2 create-subnet --vpc-id "vpc-0a72303e17267aba9" --cidr-block "10.9.12.0/24" --availability-zone "us-east-1b" --tag-specifications '{"resourceType":"subnet","tags":[{"key":"Name","value":"iblisk-subnet-private2-us-east-1b"}]}' 
+
+
+
+---IGW
+aws ec2 create-internet-gateway --tag-specifications '{"resourceType":"internet-gateway","tags":[{"key":"Name","value":"iblisk-igw"}]}' 
+aws ec2 attach-internet-gateway --internet-gateway-id "igw-02fe9ab2fa9e105dd" --vpc-id "vpc-0a72303e17267aba9" 
+
+aws ec2 create-route-table --vpc-id "vpc-0a72303e17267aba9" --tag-specifications '{"resourceType":"route-table","tags":[{"key":"Name","value":"iblisk-rtb-public"}]}' 
+aws ec2 create-route --route-table-id "rtb-0d338a8c54c2e1909" --destination-cidr-block "0.0.0.0/0" --gateway-id "igw-02fe9ab2fa9e105dd" 
+aws ec2 allocate-address --domain "vpc" --tag-specifications '{"resourceType":"elastic-ip","tags":[{"key":"Name","value":"iblisk-eip-us-east-1a"}]}' 
+aws ec2 create-nat-gateway --subnet-id "subnet-03dd2942348deadb6" --allocation-id "eipalloc-03cf52ad0cbfbbfdc" --tag-specifications '{"resourceType":"natgateway","tags":[{"key":"Name","value":"iblisk-nat-public1-us-east-1a"}]}' --client-token "4d723058-4e69-4fc2-99f3-2c39bda690a4" 
+aws ec2 create-route-table --vpc-id "vpc-0a72303e17267aba9" --tag-specifications '{"resourceType":"route-table","tags":[{"key":"Name","value":"iblisk-rtb-private1-us-east-1a"}]}' 
+aws ec2 create-route --route-table-id "rtb-077d73164866aeb9a" --destination-cidr-block "0.0.0.0/0" --nat-gateway-id "nat-02e2816bfb5e31b7c" 
+aws ec2 create-route-table --vpc-id "vpc-0a72303e17267aba9" --tag-specifications '{"resourceType":"route-table","tags":[{"key":"Name","value":"iblisk-rtb-private2-us-east-1b"}]}' 
+aws ec2 create-route --route-table-id "rtb-08f1eee0dc3750e05" --destination-cidr-block "0.0.0.0/0" --nat-gateway-id "nat-02e2816bfb5e31b7c" 
+aws ec2 modify-vpc-endpoint --vpc-endpoint-id "vpce-05a70cc5258122bd2" --add-route-table-ids "rtb-077d73164866aeb9a" "rtb-08f1eee0dc3750e05"     
+
+
+
+
+---Security Groups
+ALB-SG http 0.0.0.0/0
+TG01-SG http 0.0.0.0/0
+
+---Target Group
+TG01
+
+---ALB
+ALB01
+
+---ASG
