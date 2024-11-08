@@ -48,10 +48,18 @@ aws ec2 modify-vpc-endpoint --vpc-endpoint-id "vpce-05a70cc5258122bd2" --add-rou
 ALB-SG http 0.0.0.0/0
 TG01-SG http 0.0.0.0/0
 
+
+ASG01-TG01
+ASG01-LB01
+
+---Launch Template
+TG01-EC2-Template
+
 ---Target Group
-TG01
+TG01-ASG01
 
 ---ALB
-ALB01
+ASG01-LB01
 
 ---ASG
+ASG01
