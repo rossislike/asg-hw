@@ -1,0 +1,52 @@
+#!/bin/bash
+# Use this for your user data (script from top to bottom)
+# install httpd (Linux 2 version)
+yum update -y
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+
+# Get the IMDSv2 token
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+# Background the curl requests
+curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/local-ipv4 &> /tmp/local_ipv4 &
+curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/availability-zone &> /tmp/az &
+curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/ &> /tmp/macid &
+wait
+
+macid=$(cat /tmp/macid)
+local_ipv4=$(cat /tmp/local_ipv4)
+az=$(cat /tmp/az)
+vpc=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/${macid}/vpc-id)
+
+aws s3api get-object --bucket rumo-box2d-bucket --key box2d-demo.js /var/www/html/box2d-demo.js
+aws s3api get-object --bucket rumo-box2d-bucket --key box2d.min.js /var/www/html/box2d.min.js
+
+cat <<EOF > /var/www/html/index.html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+        <title>Box2d Demo</title>
+        <script src="box2d.min.js" type="text/javascript"></script>
+        <script src="box2d-demo.js" type="text/javascript"></script>
+    </head>
+    <body onload="init();">
+        <canvas id="canvas" width="640" height="480" style="border: 1px solid black;">
+            Your browser does not support HTML5 Canvas
+        </canvas>
+        <p><b>Instance Name:</b> $(hostname -f) </p>
+        <p><b>Instance Private Ip Address: </b> ${local_ipv4}</p>
+        <p><b>Availability Zone: </b> ${az}</p>
+        <p><b>Virtual Private Cloud (VPC):</b> ${vpc}</p>
+        <canvas id="gamecanvas" width="640" height="480" class="gamelayer">
+        Your browser does not support HTML5 Canvas. Please shift to a newer
+        browser.
+        </canvas>
+        <iframe width="966" height="543" src="https://www.youtube.com/embed/DcJFdCmN98s" title="OH MY DAYUM ft. @DaymDrops" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </body>
+</html>
+EOF
+
+
